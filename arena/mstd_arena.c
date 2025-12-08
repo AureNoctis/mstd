@@ -86,7 +86,7 @@ ArenaTemp* arena_temp_begin(Arena* arena) {
     assert(arena);
     const u64 cursor = arena->cursor;
 
-    ArenaTemp* temp = (ArenaTemp*)arena_push(arena, sizeof(ArenaTemp), alignof(ArenaTemp));
+    ArenaTemp* temp = (ArenaTemp*)arena_push(arena, sizeof(ArenaTemp), align_of(ArenaTemp));
     temp->arena = arena;
     temp->cursor = cursor;
 
