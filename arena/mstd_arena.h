@@ -20,7 +20,9 @@ typedef struct ArenaTemp ArenaTemp;
 
 Arena* arena_alloc(const ArenaCreateInfo create_info);
 void arena_release(Arena* arena);
-void* arena_push(Arena* arena, const u64 size, const u64 alignment);
+void* arena_push(Arena* arena, const u64 size, const u64 align);
+void arena_clear(Arena* arena);
+
 ArenaTemp* arena_temp_begin(Arena* arena);
 void arena_temp_end(ArenaTemp* arena_temp);
 
@@ -28,5 +30,7 @@ void arena_temp_end(ArenaTemp* arena_temp);
     for (ArenaTemp *_temp_ = arena_temp_begin(arena); \
          _temp_ != NULL; \
          arena_temp_end(_temp_), _temp_ = NULL)
+
+#define arena_push_array(arena, Type, count) (Type*)arena_push((arena), sizeof(Type)*(count), alignof(Type))
 
 #endif // MSTD_ARENA_IMPLEMENTATION

@@ -76,6 +76,10 @@ void* arena_push(Arena* arena, const u64 size, const u64 alignment) {
     return result;
 }
 
+void arena_clear(Arena* arena) {
+    arena->cursor = 0;
+}
+
 typedef struct ArenaTemp ArenaTemp;
 struct ArenaTemp {
     Arena* arena;
@@ -86,7 +90,7 @@ ArenaTemp* arena_temp_begin(Arena* arena) {
     assert(arena);
     const u64 cursor = arena->cursor;
 
-    ArenaTemp* temp = (ArenaTemp*)arena_push(arena, sizeof(ArenaTemp), align_of(ArenaTemp));
+    ArenaTemp* temp = (ArenaTemp*)arena_push(arena, sizeof(ArenaTemp), alignof(ArenaTemp));
     temp->arena = arena;
     temp->cursor = cursor;
 

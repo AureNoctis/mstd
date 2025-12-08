@@ -87,8 +87,8 @@ typedef double f64;
 
 ////////////////////////////////
 // math and utils
-#define align_as _Alignas
-#define align_of _Alignof
+#define alignas _Alignas
+#define alignof _Alignof
 #define align_up_pow2(x,b)   (((x) + (b) - 1)&(~((b) - 1)))
 #define align_down_pow2(x,b) ((x)&(~((b) - 1)))
 #define align_up_pad_pow2(x,b)  ((0-(x)) & ((b) - 1))
@@ -121,49 +121,47 @@ void mem_copy(void* destination, void* source, u64 size);
 void mem_set(void* data, u8 value, u64 size);
 #define mem_zero(data, size) mem_set(data, 0, size)
 
-typedef struct mem mem;
-struct mem { uaddress address; u64 size; };
+typedef struct Arena Arena;
 
 ////////////////////////////////
 // strings: u8 u16
 
-typedef struct string8 string8;
-struct string8 {
+typedef struct str8 str8;
+struct str8 {
+    u64 size;
     u8* str;
-    u64 size;
 };
 
-typedef struct string16 string16;
-struct string16 {
+typedef struct str16 str16;
+struct str16 {
+    u64 size;
     u16* str;
-    u64 size;
 };
-
 b32 char_is_space(u8 c);
 b32 char_is_upper(u8 c);
 b32 char_is_lower(u8 c);
 b32 char_is_alphabet(u8 c);
 b32 char_is_digit(u8 c, u32 base);
-
 u8 char_to_lower(u8 c);
 u8 char_to_upper(u8 c);
+u64 cstr8_length(const u8 *c);
+u64 cstr16_length(const u16 *c);
 
-u64 cstr8_length(u8 *c);
-u64 cstr16_length(u16 *c);
+str8 _str8(u8* str, u64 size);
+str16 _str16(u16* str, u64 size);
 
-string8 _str8(u8* str, u64 size);
-#define str8(string_literal) _str8((u8*)(string_literal), sizeof(string_literal) - 1)
-string16 _str16(u16* str, u64 size);
-#define str16(string_literal) _str16((u16*)(string_literal), sizeof(string_literal) - 1)
-string8  str8_from_cstr(char* str);
-string16 str16_from_cstr(u16* str);
+#define str8(literal) _str8((u8*)(literal), sizeof(literal) - 1)
+#define str16(literal) _str16((u16*)(literal), sizeof(literal) - 1)
 
-#if defined(MSTD_USE_ARENA)
-typedef struct Arena Arena;
-string8  str8_to_lower(Arena* arena, string8 str);
-string8  str8_to_upper(Arena* arena, string8 str);
-string16 str16_to_lower(Arena* arena, string16 str);
-string16 str16_to_upper(Arena* arena, string16 str);
-#endif
+str8 str8_from_cstr(const char* str);
+str16 str16_from_cstr(const u16* str);
+
+str8 str8_copy(Arena* arena, const str8 str);
+str16 str16_copy(Arena* arena, const str16 str);
+
+str8 str8_to_lower(Arena* arena, const str8 str);
+str8 str8_to_upper(Arena* arena, const str8 str);
+str8 str8_concat(Arena* arena, const str8 a, const str8 b);
+b32 str8_equal(const str8 a, const str8 b);
 
 #endif // TYPES_IMPLEMENTATION
