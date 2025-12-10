@@ -7,58 +7,31 @@
 
 #if defined(_MSC_VER)
     #define COMPILER_MSVC 1
-    #define COMPILER_GCC 0
-    #define COMPILER_CLANG 0
 #elif defined(__clang__)
-    #define COMPILER_MSVC 0
-    #define COMPILER_GCC 0
     #define COMPILER_CLANG 1
 #elif defined(__GNUC__)
-    #define COMPILER_MSVC 0
     #define COMPILER_GCC 1
-    #define COMPILER_CLANG 0
 #else
-    #define COMPILER_MSVC 0
-    #define COMPILER_GCC 0
-    #define COMPILER_CLANG 0
     #warning "Unknown Compiler"
 #endif
 
 #if defined(_WIN32)
     #define OS_WINDOWS 1
-    #define OS_LINUX 0
-    #define OS_MAC 0
 #elif defined(__linux__)
-    #define OS_WINDOWS 0
     #define OS_LINUX 1
-    #define OS_MAC 0
 #elif defined(__APPLE__) && defined(__MACH__)
-    #define OS_WINDOWS 0
-    #define OS_LINUX 0
     #define OS_MAC 1
 #else
-    #define OS_WINDOWS 0
-    #define OS_LINUX 0
-    #define OS_MAC 0
     #warning "Unknown Operating System"
 #endif
 
 #if defined(_M_AMD64) || defined(__amd64__) || defined(__x86_64__)
     #define ARCH_X64 1
-    #define ARCH_X86 0
-    #define ARCH_ARM 0
 #elif defined(_M_IX86) || defined(__i386__)
-    #define ARCH_X64 0
     #define ARCH_X86 1
-    #define ARCH_ARM 0
 #elif defined(_M_ARM) || defined(__arm__) || defined(__aarch64__)
-    #define ARCH_X64 0
-    #define ARCH_X86 0
     #define ARCH_ARM 1
 #else
-    #define ARCH_X64 0
-    #define ARCH_X86 0
-    #define ARCH_ARM 0
     #warning "Unknown Architecture"
 #endif
 
@@ -91,6 +64,9 @@ typedef double f64;
 // math and utils
 #define alignas _Alignas
 #define alignof _Alignof
+
+#define unreferenced_parameter(x) { (x) = (x); }
+
 #define align_up_pow2(x,b)   (((x) + (b) - 1)&(~((b) - 1)))
 #define align_down_pow2(x,b) ((x)&(~((b) - 1)))
 #define align_up_pad_pow2(x,b)  ((0-(x)) & ((b) - 1))
@@ -160,16 +136,22 @@ typedef struct SystemInfo SystemInfo;
 struct SystemInfo {
     u64 page_size;
     u64 large_page_size;
-    u64 allocation_granuality;
+    u64 allocation_granularity;
     u32 processors;
+    u32 numa_nodes;
+    u64 cache_line_size;
 };
 
-typedef struct OSInfo OSInfo;
-struct OSInfo {
-    SystemInfo system;
+typedef struct ProcessInfo ProcessInfo;
+struct ProcessInfo {
+    u32 pid;
+    u32 group_id;
+    u64 affinity_mask;
+    u64 page_file_limit;
 };
 
-OSInfo* os_get_system_info(Arena* arena);
+SystemInfo* os_get_system_info(Arena* arena);
+ProcessInfo* os_get_process_info(Arena* arena);
 
 u64 os_get_page_size();
 u64 os_get_large_page_size();
