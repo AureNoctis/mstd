@@ -234,5 +234,7 @@ void arena_temp_end(ArenaTemp* arena_temp) {
 }
 
 #if defined(OS_WINDOWS)
-    #include "mstd_os_win32.c"
+    #include "ext/win32/mstd_win32.c"
+#elif defined(OS_LINUX)
+#elif defined(OS_MAC)
 #endif

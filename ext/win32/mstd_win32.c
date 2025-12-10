@@ -2,6 +2,19 @@
 #define NOMINMAX
 #include <Windows.h>
 
+OSInfo* os_get_system_info(Arena* arena) {
+    SYSTEM_INFO sysinfo = { 0 };
+    GetSystemInfo(&sysinfo);
+    OSInfo* os_info = arena_push_struct(arena, OSInfo);
+    os_info->system = (SystemInfo) {
+        .page_size = sysinfo.dwPageSize,
+        .large_page_size = GetLargePageMinimum(),
+        .allocation_granuality = sysinfo.dwAllocationGranularity,
+        .processors = sysinfo.dwNumberOfProcessors,
+    };
+    return os_info;
+}
+
 u64 os_get_page_size() {
     SYSTEM_INFO sysinfo = { 0 };
     GetSystemInfo(&sysinfo);
@@ -38,3 +51,4 @@ void os_decommit(void* ptr, u64 size) {
 void os_release(void* ptr, u64 size) {
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
+

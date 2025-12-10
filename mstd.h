@@ -120,18 +120,6 @@ void mem_set(void* data, u8 value, u64 size);
 #define mem_zero(data, size) mem_set(data, 0, size)
 
 ////////////////////////////////
-// OS
-
-u64 os_get_page_size();
-u64 os_get_large_page_size();
-void* os_reserve(u64 size);
-void* os_reserve_large(u64 size);
-b32 os_commit(void* ptr, u64 size);
-b32 os_commit_large(void* ptr, u64 size);
-void os_decommit(void* ptr, u64 size);
-void os_release(void* ptr, u64 size);
-
-////////////////////////////////
 // Arena
 
 typedef enum ArenaFlag ArenaFlag;
@@ -165,6 +153,32 @@ void arena_temp_end(ArenaTemp* arena_temp);
 
 #define arena_push_array(arena, Type, count) (Type*)arena_push((arena), sizeof(Type)*(count), alignof(Type))
 #define arena_push_struct(arena, Type) (Type*)arena_push((arena), sizeof(Type), alignof(Type))
+
+////////////////////////////////
+// OS
+typedef struct SystemInfo SystemInfo;
+struct SystemInfo {
+    u64 page_size;
+    u64 large_page_size;
+    u64 allocation_granuality;
+    u32 processors;
+};
+
+typedef struct OSInfo OSInfo;
+struct OSInfo {
+    SystemInfo system;
+};
+
+OSInfo* os_get_system_info(Arena* arena);
+
+u64 os_get_page_size();
+u64 os_get_large_page_size();
+void* os_reserve(u64 size);
+void* os_reserve_large(u64 size);
+b32 os_commit(void* ptr, u64 size);
+b32 os_commit_large(void* ptr, u64 size);
+void os_decommit(void* ptr, u64 size);
+void os_release(void* ptr, u64 size);
 
 ////////////////////////////////
 // strings: u8 u16
