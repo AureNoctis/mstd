@@ -3,7 +3,7 @@
 
 typedef struct Arena Arena;
 struct Arena {
-    uaddress base;
+    u8* base;
     u64 commited;
     u64 commit_size;
     u64 cursor;
@@ -17,12 +17,12 @@ struct ArenaTemp {
     u64 cursor;
 };
 
-b32 mem_is_pow2(uaddress address) {
-    return is_pow2(address);
+b32 mem_is_pow2(void* memory) {
+    return is_pow2((uaddress)memory);
 }
 
 b32 mem_is_aligned(void* memory, u64 alignment) {
-    return align_up_pad_pow2((uintptr_t)memory, alignment) == 0;
+    return align_up_pad_pow2((uaddress)memory, alignment) == 0;
 }
 
 b32 mem_compare(void* memory1, void* memory2, u64 count) {
@@ -172,7 +172,7 @@ Arena* arena_alloc(const ArenaCreateInfo create_info) {
     }
 
     Arena* arena = (Arena*)base;
-    arena->base = (uaddress)base;
+    arena->base = base;
     arena->commit_size = commit_size;
     arena->commited = commit_size;
     arena->cursor = 0;
@@ -187,13 +187,15 @@ void arena_release(Arena* arena) {
 }
 
 void* arena_push(Arena* arena, const u64 size, const u64 alignment) {
+    assert(arena);
     u64 begin_pos = align_up_pow2(arena->cursor, alignment);
     u64 end_pos = begin_pos + size;
 
     if (arena->commited < end_pos) {
-        b32 commit_success = 0;
-        void* commit_ptr = (void*)(arena->base + arena->commited);
         u64 commit_size = min(align_up_pow2(end_pos, arena->commit_size), arena->reserved) - arena->commited;
+
+        void* commit_ptr = (void*)(arena->base + arena->commited);
+        b32 commit_success = 0;
 
         if (arena->flags & arena_flag_allocate_large_pages)
             commit_size = os_commit_large(commit_ptr, commit_size);
@@ -233,8 +235,28 @@ void arena_temp_end(ArenaTemp* arena_temp) {
     arena_temp->arena->cursor = arena_temp->cursor;
 }
 
+void random_seed_pcg(RandomNumberGenerator* rng, const u64 state, const u64 stream) {
+    rng->state.low = 0;
+    rng->state.high = 0;
+
+    rng->inc.low = (stream << 1) | 1;
+    rng->inc.high = state;
+
+    random_update_pcg_state(rng);
+    rng->state.low += stream;
+    random_update_pcg_state(rng);
+}
+
+u64 random_pcg(RandomNumberGenerator* rng) {
+    const u128 oldstate = rng->state;
+    random_update_pcg_state(rng);
+    unsigned int rot = (unsigned int)(oldstate.high >> 58);
+    u64 xorshifted = (oldstate.high ^ oldstate.low) >> 59;
+    return rotate_right_u64(xorshifted, rot);
+}
+
 #if defined(OS_WINDOWS)
-    #include "ext/win32/mstd_win32.c"
+    #include "ext/mstd_win32.c"
 #elif defined(OS_LINUX)
 #elif defined(OS_MAC)
 #endif

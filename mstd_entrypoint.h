@@ -8,6 +8,11 @@ int mstd_main(int argc, char* argv[]); // To be declared by user
 #include <stdio.h>
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
+    unreferenced_parameter(hInstance);
+    unreferenced_parameter(hPrevInstance);
+    unreferenced_parameter(lpCmdLine);
+    unreferenced_parameter(nCmdShow);
+
     BOOL attached = AttachConsole(ATTACH_PARENT_PROCESS);
 
     if (attached) {

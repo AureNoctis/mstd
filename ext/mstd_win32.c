@@ -1,6 +1,7 @@
 #include "mstd.h"
 #define NOMINMAX
 #include <Windows.h>
+#include <bcrypt.h>
 
 SystemInfo* os_get_system_info(Arena* arena) {
     SystemInfo* s_info = arena_push_struct(arena, SystemInfo);
@@ -19,7 +20,7 @@ SystemInfo* os_get_system_info(Arena* arena) {
     DWORD buffer_size = 0;
     GetLogicalProcessorInformationEx(RelationAll, NULL, &buffer_size);
     if (buffer_size > 0) arena_scratch(arena) {
-            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer =
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer =
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)arena_push(arena, buffer_size, alignof(PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX));
 
         if (buffer && GetLogicalProcessorInformationEx(RelationAll, buffer, &buffer_size)) {
@@ -31,16 +32,16 @@ SystemInfo* os_get_system_info(Arena* arena) {
 
             while (bytes_processed < buffer_size) {
                 switch (current->Relationship) {
-                    case RelationNumaNode:
-                        numa_count++;
-                        break;
-                    case RelationCache:
-                        if (current->Cache.Type == CacheData || current->Cache.Type == CacheUnified) {
-                            if (current->Cache.LineSize > max_cache_line) {
-                                max_cache_line = current->Cache.LineSize;
-                            }
+                case RelationNumaNode:
+                    numa_count++;
+                    break;
+                case RelationCache:
+                    if (current->Cache.Type == CacheData || current->Cache.Type == CacheUnified) {
+                        if (current->Cache.LineSize > max_cache_line) {
+                            max_cache_line = current->Cache.LineSize;
                         }
-                        break;
+                    }
+                    break;
                 }
                 bytes_processed += current->Size;
                 current = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)((u8*)current + current->Size);
@@ -48,8 +49,8 @@ SystemInfo* os_get_system_info(Arena* arena) {
 
             s_info->numa_nodes = numa_count > 0 ? numa_count : 1;
             s_info->cache_line_size = max_cache_line > 0 ? max_cache_line : 64;
-            }
         }
+    }
 
     return s_info;
 }
@@ -72,9 +73,9 @@ ProcessInfo* os_get_process_info(Arena* arena) {
     SIZE_T min_ws, max_ws;
     DWORD flags;
     if (GetProcessWorkingSetSizeEx(h_proc, &min_ws, &max_ws, &flags))
-         p_info->page_file_limit = (u64)max_ws;
+        p_info->page_file_limit = (u64)max_ws;
     else
-         p_info->page_file_limit = (u64)-1;
+        p_info->page_file_limit = (u64)-1;
 
     return p_info;
 }
@@ -119,3 +120,12 @@ void os_release(void* ptr, u64 size) {
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
+b64 os_get_random_bits() {
+    b64 val = 0;
+    BCryptGenRandom(NULL, (PUCHAR)&val, sizeof(val), 0);
+    return val;
+}
+
+#if COMPILER_MSVC
+    #include "mstd_msvc.c"
+#endif

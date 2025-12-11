@@ -1,38 +1,43 @@
 #ifndef MSTD_IMPLEMENTATION
 #define MSTD_IMPLEMENTATION
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <assert.h>
+#include <stdalign.h>
 #include <stdlib.h>
 
 #if defined(_MSC_VER)
-    #define COMPILER_MSVC 1
+#define COMPILER_MSVC 1
 #elif defined(__clang__)
-    #define COMPILER_CLANG 1
+#define COMPILER_CLANG 1
 #elif defined(__GNUC__)
-    #define COMPILER_GCC 1
+#define COMPILER_GCC 1
 #else
-    #warning "Unknown Compiler"
+#warning "Unknown Compiler"
 #endif
 
 #if defined(_WIN32)
-    #define OS_WINDOWS 1
+#define OS_WINDOWS 1
 #elif defined(__linux__)
-    #define OS_LINUX 1
+#define OS_LINUX 1
 #elif defined(__APPLE__) && defined(__MACH__)
-    #define OS_MAC 1
+#define OS_MAC 1
 #else
-    #warning "Unknown Operating System"
+#warning "Unknown Operating System"
 #endif
 
 #if defined(_M_AMD64) || defined(__amd64__) || defined(__x86_64__)
-    #define ARCH_X64 1
+#define ARCH_X64 1
 #elif defined(_M_IX86) || defined(__i386__)
-    #define ARCH_X86 1
+#define ARCH_X86 1
 #elif defined(_M_ARM) || defined(__arm__) || defined(__aarch64__)
-    #define ARCH_ARM 1
+#define ARCH_ARM 1
 #else
-    #warning "Unknown Architecture"
+#warning "Unknown Architecture"
 #endif
 
 ////////////////////////////////
@@ -60,10 +65,19 @@ typedef double f64;
 
 #define enum_class(type, size_type) size_type
 
+#if defined(__clang__) || defined(__GNUC__)
+    typedef __uint128_t u128;
+#elif defined(_MSC_VER) && defined(_M_X64)
+    typedef struct {
+        alignas(16) u64 low;
+        alignas(16) u64 high;
+    } u128;
+#else
+    #error "No supported 128-bit integer implementation found."
+#endif
+
 ////////////////////////////////
 // math and utils
-#define alignas _Alignas
-#define alignof _Alignof
 
 #define unreferenced_parameter(x) { (x) = (x); }
 
@@ -78,7 +92,15 @@ typedef double f64;
 #define extract16(word, pos)  (((word) >> ((pos) << 4)) & UINT16_MAX)
 #define extract32(word, pos)  (((word) >> ((pos) << 5)) & UINT32_MAX)
 
-#define bit_rotate(value, rotation) ((value >> rotation) | (value << (-rotation) & (sizeof(value) * 8 - 1)));
+#define clamp(low, high, value) min(max(low, value), high)
+
+static inline uint64_t rotate_right_u64(uint64_t value, unsigned int shift) {
+    #if defined(_MSC_VER)
+        return _rotr64(value, shift);
+    #else
+        return (value >> shift) | (value << (64 - shift)); // Maps to ROR on GCC/Clang
+    #endif
+}
 
 #define KB(value) ((value) << 10)
 #define MB(value) ((value) << 20)
@@ -88,8 +110,8 @@ typedef double f64;
 ////////////////////////////////
 // memory
 
-b32 mem_is_pow2(uaddress address);
-b32 mem_is_aligned(void* data, u64 alignment);
+b32 mem_is_pow2(void* memory);
+b32 mem_is_aligned(void* memory, u64 alignment);
 b32 mem_compare(void* data1, void* data2, u64 count);
 void mem_copy(void* destination, void* source, u64 size);
 void mem_set(void* data, u8 value, u64 size);
@@ -161,6 +183,24 @@ b32 os_commit(void* ptr, u64 size);
 b32 os_commit_large(void* ptr, u64 size);
 void os_decommit(void* ptr, u64 size);
 void os_release(void* ptr, u64 size);
+b64 os_get_random_bits();
+
+
+////////////////////////////////
+// random
+typedef struct RandomNumberGenerator RandomNumberGenerator;
+struct RandomNumberGenerator {
+    u128 state;
+    u128 inc;
+};
+inline void random_update_pcg_state(RandomNumberGenerator* rng);
+void random_seed_pcg(RandomNumberGenerator* rng, const u64 state, const u64 stream);
+u64 random_pcg(RandomNumberGenerator* rng);
+u64 random_in_range(u64 low, u64 high, RandomNumberGenerator* rng);
+
+#define random_from_os() os_get_random_bits()
+#define random_seed(rng, state, stream) random_seed_pcg(rng,(state),(stream))
+#define random(rng) random_pcg(rng)
 
 ////////////////////////////////
 // strings: u8 u16
@@ -183,8 +223,8 @@ b32 char_is_alphabet(u8 c);
 b32 char_is_digit(u8 c, u32 base);
 u8 char_to_lower(u8 c);
 u8 char_to_upper(u8 c);
-u64 cstr8_length(u8 *c);
-u64 cstr16_length(u16 *c);
+u64 cstr8_length(u8* c);
+u64 cstr16_length(u16* c);
 
 str8 _str8(u8* str, u64 size);
 str16 _str16(u16* str, u64 size);
@@ -203,5 +243,8 @@ str8 str8_to_upper(Arena* arena, const str8 str);
 str8 str8_concat(Arena* arena, const str8 a, const str8 b);
 b32 str8_equal(const str8 a, const str8 b);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MSTD_IMPLEMENTATION
